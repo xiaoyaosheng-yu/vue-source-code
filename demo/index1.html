@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<head>
+  <title>myVue</title>
+</head>
+<style>
+  #app {
+    margin-top: 100px;
+    text-align: center;
+  }
+</style>
+<body>
+  <div id="app">
+    <input type="text" v-model='message'>
+    <div v-on:click='click'>{{message}}</div>
+    <runoob></runoob>
+  </div>
+  <script src="./../dist/vue.js"></script>
+ 
+  <script>
+    
+  // 注册
+  Vue.component('runoob', {
+    template: '<h1>{{message}}</h1>',
+    data () {
+      return {
+        message: '自定义组件'
+      }
+    },
+    beforeCreate () {
+      console.log('child beforeCreated');
+    },
+    created () {
+      console.log('child Created');
+      this.$on('wash_Goods', (arg) => {
+        console.log(arg);
+      })
+    },
+    beforeMount() {
+      console.log('child beforeMounted');
+    },
+    mounted () {
+      console.log('child mounted');
+    },
+    inject: ['reload'],
+    methods: {
+      click () {
+        this.reload();
+        // this.$emit('wash_Goods',['fish',true,{name:'vue',verison:'2.4'}])
+      }
+    }
+  })
+  // 创建根实例
+  new Vue({
+    el: '#app',
+    data () {
+      return {
+        message: 123
+      }
+    },
+    beforeCreate () {
+      console.log('parent beforeCreated');
+    },
+    created () {
+      console.log('parent Created');
+      this.$on('wash_Goods', (arg) => {
+        console.log(arg);
+      })
+    },
+    beforeMount() {
+      console.log('parent beforeMounted');
+    },
+    mounted () {
+      console.log('parent mounted');
+    },
+    provide () {
+      return {
+        reload: this.reload
+      }
+    },
+    methods: {
+      reload () {
+        console.log(111);
+      },
+      click () {
+        this.$emit('wash_Goods',['fish',true,{name:'vue',verison:'2.4'}])
+      }
+    }
+  })
+  </script>
+</body>
