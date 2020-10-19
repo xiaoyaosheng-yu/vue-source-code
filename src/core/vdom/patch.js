@@ -419,12 +419,12 @@ export function createPatchFunction (backend) {
     // 定义各种变量，用于循环遍历子节点，并进行对比修改
     let oldStartIdx = 0
     let oldEndIdx = oldCh.length - 1
-    let oldStartVnode = oldCh[0] // 所有未处理的节点中的第一个
-    let oldEndVnode = oldCh[oldEndIdx] // 所有未处理的节点中的最后一个
+    let oldStartVnode = oldCh[0] // 旧vnode中所有未处理的节点中的第一个
+    let oldEndVnode = oldCh[oldEndIdx] // 旧vnode中所有未处理的节点中的最后一个
     let newStartIdx = 0
     let newEndIdx = newCh.length - 1
-    let newStartVnode = newCh[0] // 所有未处理的节点中的第一个
-    let newEndVnode = newCh[newEndIdx] // 所有未处理的节点中的最后一个
+    let newStartVnode = newCh[0] // 新vnode中所有未处理的节点中的第一个
+    let newEndVnode = newCh[newEndIdx] // 新vnode中所有未处理的节点中的最后一个
 
     let oldKeyToIdx, idxInOld, vnodeToMove, refElm
 
@@ -437,48 +437,69 @@ export function createPatchFunction (backend) {
       checkDuplicateKeys(newCh)
     }
 
-    // 利用旧前，旧后，新前，新后进行优化循环
-    while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
-      if (isUndef(oldStartVnode)) { // 如果oldStartVnode不存在，则直接对比下一个，并将oldStartIdx + 1
-        oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
+    // 以"新前"、"新后"、"旧前"、"旧后"的方式开始比对节点
+    /** 
+     * 对比规则
+     * 1、新前-旧前
+     * 2、新后-旧后
+     * 3、新后-旧前，需要移动位置
+     * 4、新前-旧后，需要移动位置
+     * 
+     * newStartIdx和oldStartIdx只能往后移动，即下标只会增加
+     * newEndIdx和oldEndIdx只能往前移动，即下标只会减少
+    */
+    while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) { // 如果开始位置大于结束位置，则表示已经遍历完成
+      if (isUndef(oldStartVnode)) { // 如果“旧前”不存在，则直接对比下一个
+        oldStartVnode = oldCh[++oldStartIdx]
       } else if (isUndef(oldEndVnode)) { // 如果oldEndVnode不存在，则直接对比前一个，并将oldEndIdx - 1
         oldEndVnode = oldCh[--oldEndIdx]
-      } else if (sameVnode(oldStartVnode, newStartVnode)) { // 将新前与旧前进行对比，相同则进行patch处理
+      } else if (sameVnode(oldStartVnode, newStartVnode)) {
+        // 1、将新前与旧前进行对比，相同则进行patch处理
         patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
-        // 找到了相同的节点，就需要将新旧数组的指针向后移动一位
+        // 将未对比的长度减少
         oldStartVnode = oldCh[++oldStartIdx]
         newStartVnode = newCh[++newStartIdx]
-      } else if (sameVnode(oldEndVnode, newEndVnode)) { // 将新后与旧后进行对比，相同则进行patch处理
+      } else if (sameVnode(oldEndVnode, newEndVnode)) {
+        // 2、将新后与旧后进行对比，相同则进行patch处理
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+        // 将未对比的长度减少
         oldEndVnode = oldCh[--oldEndIdx]
         newEndVnode = newCh[--newEndIdx]
-      } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right // 将新后与旧前进行对比，相同则移动到与newVNode同样的位置
+      } else if (sameVnode(oldStartVnode, newEndVnode)) {
+        // 3、将新后与旧前进行对比，相同则进行patch处理
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+        // 把旧前节点移动到oldChilren中所有未处理节点之后
         canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+        // 将未对比的长度减少
         oldStartVnode = oldCh[++oldStartIdx]
         newEndVnode = newCh[--newEndIdx]
-      } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left // 将新前与旧后进行对比，相同则移动到与newVNode同样的位置
+      } else if (sameVnode(oldEndVnode, newStartVnode)) {
+        // 4、将新前与旧后进行对比，相同则进行patch处理
         patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+        // 把旧后节点移动到oldChilren中所有未处理节点之前
         canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+        // 将未对比的长度减少
         oldEndVnode = oldCh[--oldEndIdx]
         newStartVnode = newCh[++newStartIdx]
-      } else { // 如果以上情况都不是，则进行常规的循环对比
+      } else { // 优化规则不命中，则进行常规的循环对比
         // 移动节点
-        if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
-        idxInOld = isDef(newStartVnode.key) ? oldKeyToIdx[newStartVnode.key] : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
-        if (isUndef(idxInOld)) { // 如果循环后仍在oldVNode中找不到，就新增节点并插入到与newVNode相同的位置
+        if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);
+        idxInOld = isDef(newStartVnode.key) ? oldKeyToIdx[newStartVnode.key] : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
+        // 如果在oldChildren里找不到当前循环的newChildren里的子节点
+        if (isUndef(idxInOld)) {
           // 新增节点并插入到合适位置
           createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
-        } else { // 在oldChildren里找到了当前循环的newChildren里的子节点
-          vnodeToMove = oldCh[idxInOld] // 获取到该节点
+        } else {
+          // oldChildren中找到了该节点
+          vnodeToMove = oldCh[idxInOld]
           if (sameVnode(vnodeToMove, newStartVnode)) { // 如果两个节点相同
-            patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue, newCh, newStartIdx) // 调用patchVnode更新节点
+            // 调用patchVnode更新节点
+            patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
             oldCh[idxInOld] = undefined
             // canmove表示是否需要移动节点，如果为true表示需要移动，则移动节点，如果为false则不用移动
             canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
           } else {
             // 如果node的key相同，但元素不同，则视为新元素，并挂载至node上
-            // same key but different element. treat as new element
             createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
           }
         }
@@ -545,7 +566,6 @@ export function createPatchFunction (backend) {
     if (oldVnode === vnode) {
       return
     }
-
     
     if (isDef(vnode.elm) && isDef(ownerArray)) {
       // clone reused vnode
@@ -592,7 +612,7 @@ export function createPatchFunction (backend) {
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
 
-    // 判断是否有text属性，没有则进入if处理程序
+    // 如果不是文本节点
     if (isUndef(vnode.text)) {
       // vnode的子节点与oldVnode的子节点都存在
       if (isDef(oldCh) && isDef(ch)) {
@@ -617,7 +637,8 @@ export function createPatchFunction (backend) {
         nodeOps.setTextContent(elm, '') // 清空oldnode的文本
       }
       // 以上两个else if总结就是：当VNode没有子节点时，oldVNode中有什么就清空什么
-    } else if (oldVnode.text !== vnode.text) { // 如果都存在text属性，但内容不一样
+    } else if (oldVnode.text !== vnode.text) { 
+      // 如果新vnode是文本节点，但是旧vnode不是文本节点，则用setTextNode方法修改为文本节点
       // 用vnode的text替换真实DOM的文本
       nodeOps.setTextContent(elm, vnode.text)
     }
