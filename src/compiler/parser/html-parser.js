@@ -85,7 +85,7 @@ export function parseHTML (html, options) {
       if (textEnd === 0) {
         // 通过正则匹配是否为注释标签
         if (comment.test(html)) {
-          // 找到结束标签 --> 
+          // 找到结束标签的下标 --> 
           const commentEnd = html.indexOf('-->')
 
           if (commentEnd >= 0) { // 如果找到了结束标签
@@ -105,7 +105,7 @@ export function parseHTML (html, options) {
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
         // 解析是否是条件注释标签
         if (conditionalComment.test(html)) {
-          // 寻找结束标签
+          // 寻找结束标签的下标
           const conditionalEnd = html.indexOf(']>')
 
           if (conditionalEnd >= 0) {
@@ -223,6 +223,7 @@ export function parseHTML (html, options) {
 
   // 匹配开始标签
   function parseStartTag () {
+    // '<div></div>'.match(startTagOpen)  => ['<div','div',index:0,input:'<div></div>']
     const start = html.match(startTagOpen)
     if (start) {
       const match = {

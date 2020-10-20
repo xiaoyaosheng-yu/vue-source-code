@@ -12,7 +12,6 @@ export const createCompiler = createCompilerCreator(function baseCompile (
   template: string,
   options: CompilerOptions
 ): CompiledResult {
-  debugger;
   // 模板解析阶段：用正则等方式解析 template 模板中的指令、class、style等数据，形成AST
   const ast = parse(template.trim(), options)
   if (options.optimize !== false) {
@@ -22,8 +21,8 @@ export const createCompiler = createCompilerCreator(function baseCompile (
   // 代码生成阶段：将AST转换成渲染函数；
   const code = generate(ast, options)
   return {
-    ast,
-    render: code.render,
-    staticRenderFns: code.staticRenderFns
+    ast, // 抽象语法树
+    render: code.render, // 渲染函数
+    staticRenderFns: code.staticRenderFns // 静态渲染函数
   }
 })

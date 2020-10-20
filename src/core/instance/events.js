@@ -19,7 +19,6 @@ export function initEvents (vm: Component) {
   // _parentListeners其实是父组件模板中写的v-on
   // 所以下面这段就是将父组件模板中注册的事件放到当前组件实例的listeners里面，即父组件的事件触发子组件的事件传入的函数
   const listeners = vm.$options._parentListeners
-  debugger;
   if (listeners) {
     updateComponentListeners(vm, listeners)
   }

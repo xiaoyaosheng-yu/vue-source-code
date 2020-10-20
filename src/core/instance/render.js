@@ -20,7 +20,6 @@ import { isUpdatingChildComponent } from './lifecycle'
  * 为组件实例初始化一些属性，比如solts和createElement，createElement
  */
 export function initRender (vm: Component) {
-  debugger;
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null // v-once cached trees
   const options = vm.$options

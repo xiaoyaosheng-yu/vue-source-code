@@ -31,7 +31,6 @@ export function setActiveInstance(vm: Component) {
 
 // 初始化生命周期函数
 export function initLifecycle (vm: Component) {
-  debugger;
   const options = vm.$options
   // locate first non-abstract parent
   let parent = options.parent
@@ -344,7 +343,6 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
 }
 
 export function callHook (vm: Component, hook: string) {
-  debugger;
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
   const handlers = vm.$options[hook]

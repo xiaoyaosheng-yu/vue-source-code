@@ -19,7 +19,6 @@ Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
-  debugger;
   el = el && query(el)
 
   /* istanbul ignore if */

@@ -36,7 +36,6 @@ const sharedPropertyDefinition = {
 }
 
 export function proxy (target: Object, sourceKey: string, key: string) {
-  debugger;
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
   }
@@ -48,7 +47,6 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 
 // 初始化实例的状态选项
 export function initState (vm: Component) {
-  debugger;
   vm._watchers = []
   // 初始化props、data、methods、computed、watch选项
   // vm.$options中即有什么选项就初始化什么选项
@@ -389,7 +387,6 @@ export function stateMixin (Vue: Class<Component>) {
     options?: Object
   ): Function {
     const vm: Component = this
-    debugger
     if (isPlainObject(cb)) { // 判断是否为一个对象
       return createWatcher(vm, expOrFn, cb, options)
     }

@@ -39,7 +39,6 @@ export default class Dep {
 
   // 更新依赖
   notify () {
-    debugger;
     // stabilize the subscriber list first
     const subs = this.subs.slice()
     if (process.env.NODE_ENV !== 'production' && !config.async) {
@@ -63,7 +62,6 @@ const targetStack = []
 export function pushTarget (target: ?Watcher) {
   targetStack.push(target)
   Dep.target = target
-  debugger;
 }
 
 export function popTarget () {

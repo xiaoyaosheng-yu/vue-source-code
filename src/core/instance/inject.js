@@ -14,7 +14,6 @@ export function initProvide (vm: Component) {
 }
 
 export function initInjections (vm: Component) {
-  debugger;
   // 将inject中的数据转化为键值对的形式
   const result = resolveInject(vm.$options.inject, vm)
   if (result) {
@@ -45,7 +44,6 @@ export function initInjections (vm: Component) {
 // 从当前实例开始逐级往上查找inject中的值，并作相应处理
 // inject有3种写法，在合并options时已经通过normalizeInject转化为了统一格式
 export function resolveInject (inject: any, vm: Component): ?Object {
-  debugger;
   if (inject) {
     // inject is :any because flow is not smart enough to figure out cached
     const result = Object.create(null) // 用于存放provide的执行函数

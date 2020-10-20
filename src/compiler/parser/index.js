@@ -205,6 +205,10 @@ export function parse (
   }
 
   // HTML解析器
+  /** 
+   * @param template 待转换的模板字符串
+   * @param options 转换时的配置选项
+  */
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -214,6 +218,7 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // options中的4个钩子函数，当解析器解析出不同内容时调用不同钩子生成不同AST
     // 参数说明：标签名称，属性对象，unary,
     start (tag, attrs, unary, start, end) { // 当解析到开始标签时，调用该函数
       // check namespace.
@@ -401,6 +406,7 @@ export function parse (
         }
       }
     },
+
     comment (text: string, start, end) { // 当解析到注释时，调用该函数
       // adding anyting as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
@@ -418,6 +424,7 @@ export function parse (
       }
     }
   })
+
   return root
 }
 

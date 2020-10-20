@@ -57,7 +57,6 @@ export function initMixin (Vue: Class<Component>) { // 此时的Vue并没有实�
     // expose real self
     // 此时的vm打印后是这样的：Vue {_uid: 0, _isVue: true, $options: {"components":{},"directives":{},"filters":{},"el":"#app", data () {}}, _renderProxy: Proxy}
     vm._self = vm
-    debugger;
     initLifecycle(vm) // 初始化生命周期
     initEvents(vm) // 初始化事件
     initRender(vm) // 初始化渲染，为组件实例初始化$attr和$createElement等属性
