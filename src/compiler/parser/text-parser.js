@@ -20,6 +20,7 @@ type TextParseResult = {
 /**
  * 文本解析器的作用
  * 判断传入的文本是否包含变量
+ * 将文本中的变量和非变量提取出来
  * 构造expression
  * 构造tokens
  * @export

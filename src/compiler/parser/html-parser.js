@@ -62,9 +62,10 @@ export function parseHTML (html, options) {
   const stack = []
   const expectHTML = options.expectHTML
   const isUnaryTag = options.isUnaryTag || no
-  const canBeLeftOpenTag = options.canBeLeftOpenTag || no
+  const canBeLeftOpenTag = options.canBeLeftOpenTag || no // 用来检测一个标签是否是可以省略闭合标签的非自闭合标签
   let index = 0 // 游标位置
-  // last表示剩余未解析的模板字符串，lastTag用于存储位于stack栈顶的元素，方便弹出来
+  // last表示剩余未解析的模板字符串
+  // lastTag用于存储位于stack栈顶的元素，方便弹出来
   let last, lastTag
   while (html) { // 判断html内容是否存在
     last = html // 保留html副本
@@ -72,7 +73,7 @@ export function parseHTML (html, options) {
     // 确保模板内容不是在一个纯文本内容元素中：script、style、textarea，因为这三个标签中不会有HTML标签的
     // isPlainTextElement用于判断是否为是那三个纯文本标签之一，是的话为true
     // !lastTag 用于确保html没有父节点
-    if (!lastTag || !isPlainTextElement(lastTag)) {
+    if (!lastTag || !isPlainTextElement(lastTag)) { 
       let textEnd = html.indexOf('<')
       /**
        * 如果html字符串以<开头，则有一下五种可能
@@ -121,7 +122,8 @@ export function parseHTML (html, options) {
           continue
         }
 
-        // End tag:以<div id="demo">{{msg}}</div>为例
+        // 解析是否是结束标签
+        // 以<div id="demo">{{msg}}</div>为例
         const endTagMatch = html.match(endTag) // 对</div>部分进行处理
         if (endTagMatch) {
           const curIndex = index
@@ -130,8 +132,10 @@ export function parseHTML (html, options) {
           continue
         }
 
-        // Start tag:以<div id="demo">{{msg}}</div>为例
+        // 匹配是否是开始标签
+        // 以<div id="demo">{{msg}}</div>为例
         const startTagMatch = parseStartTag() // 即对<div id="demo">部分进行处理
+        debugger
         if (startTagMatch) {
           handleStartTag(startTagMatch)
           if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
@@ -154,11 +158,11 @@ export function parseHTML (html, options) {
         ) {
           // < in plain text, be forgiving and treat it as text
           next = rest.indexOf('<', 1) // 判断rest中是否还有其他<，即嵌套标签
-          if (next < 0) break
-          textEnd += next
-          rest = html.slice(textEnd)
+          if (next < 0) break // 如果没有，则表示 < 后面也是文本内容
+          textEnd += next // 如果有，则表示 < 是文本中的一个字符
+          rest = html.slice(textEnd) // 将next的内容截取出来，继续循环匹配
         }
-        // 将next的内容继续循环匹配
+        // 截取整个文本内容，因为逻辑处理用了rest变量，所以并不会影响html原字符串
         text = html.substring(0, textEnd)
       }
 
@@ -223,7 +227,8 @@ export function parseHTML (html, options) {
 
   // 匹配开始标签
   function parseStartTag () {
-    // '<div></div>'.match(startTagOpen)  => ['<div','div',index:0,input:'<div></div>']
+    debugger;
+    // '<div id="demo"></div>'.match(startTagOpen)  => ['<div','div',index:0,input:'<div id="demo"></div>']
     const start = html.match(startTagOpen)
     if (start) {
       const match = {
@@ -231,20 +236,32 @@ export function parseHTML (html, options) {
         attrs: [],
         start: index
       }
+      // 移动游标
       advance(start[0].length)
-      let end, attr
-      // 循环提取所有属性标志，且没有匹配到结束标志，并存放到match.attr数组中
-      while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
-        attr.start = index
-        advance(attr[0].length)
-        attr.end = index
-        match.attrs.push(attr)
+      let end, attr // end 获取的是自闭合标签和非自闭合标签的标志[">", "", .....] 或 ["/>", "/", .....]
+      // 循环提取所有attrs属性，且没有匹配到结束标志，并存放到match.attr数组中
+      // 最后剩余 /> 或 ></div>
+      while (
+        !(end = html.match(startTagClose)) && 
+        (attr = html.match(dynamicArgAttribute) || 
+        html.match(attribute)) // [" id="demo"", "id", "=", "demo", .......]
+        ) {
+          // attr = [" id="demo"", "id", "=", "demo", .......]
+          attr.start = index
+          // 移动游标
+          advance(attr[0].length)
+          attr.end = index
+          match.attrs.push(attr)
       }
       // 匹配到结束标签，则解析结束
-      if (end) {
-        match.unarySlash = end[1]
+      if (end) { // end = [">", "", index: 0, input: "></div>", groups: undefined]
+        match.unarySlash = end[1] // 判断是否为自闭合标签的标志，"" 或 /
+        // 移动游标
         advance(end[0].length)
         match.end = index
+        /* 
+          此时的match: {tagName: 'div', attrs: [" id="demo"", "id", "=", "demo", .......], end: 14, start: 0, unarySlash: ''}
+        */
         return match
       }
     }
@@ -266,14 +283,16 @@ export function parseHTML (html, options) {
 
     const unary = isUnaryTag(tagName) || !!unarySlash // 判断是否为自闭合标签
 
-    const l = match.attrs.length // 开始标签的属性的长度
+    const l = match.attrs.length // 标签属性的数量
     const attrs = new Array(l) // 构建一个长度与l长度相等的数组
+
     // 循环处理标签的属性数组，包括但不限于class，id，href等
     for (let i = 0; i < l; i++) {
       // 格式：["class="a"", "class", "=", "a", undefined, undefined, index: 0, input: "class="a" id="b"></div>", groups: undefined]
-      const args = match.attrs[i]
+      const args = match.attrs[i] // 分离出每个属性的键和值
 
-      const value = args[3] || args[4] || args[5] || '' // 取定义属性的值
+      const value = args[3] || args[4] || args[5] || '' // 取attrs属性的值
+
       // 兼容处理，如href链接的换行符或制表符，属性的值的换行符和制表符
       const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
         ? options.shouldDecodeNewlinesForHref // 需要对href中的值做兼容处理
@@ -290,6 +309,8 @@ export function parseHTML (html, options) {
     }
 
     // 如果是非自闭合标签，则推入栈中
+    // 不直接构建AST树是因为这里只匹配了非自闭合标签的开始标签，开始标签和结束标签之间可能还有其他子标签
+    // 第二个作用也是为了保证AST节点的层级关系
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
@@ -316,6 +337,9 @@ export function parseHTML (html, options) {
     start, // 在html字符串中的开始位置
     end // 在html字符串中的结束位置
   ) {
+    // pos代表栈中与tagName相同的下标位置
+    // 需从上往下搜索，因为最后一个与tagName匹配的标签肯定是在栈顶，如果不在栈顶，就说明有标签没有闭合，只有非自闭合标签才能入栈
+    // 例如：<div><span></div>
     let pos, lowerCasedTagName
     if (start == null) start = index
     if (end == null) end = index
@@ -334,9 +358,10 @@ export function parseHTML (html, options) {
     }
 
     if (pos >= 0) {
-      // Close all the open elements, up the stack
       // 如果代码正确，那么pos应该等于0，因为字符串是从前往后的，而出栈是从后往前的，字符串第一个结束标签应该是对应栈顶最后一个入栈的元素
-      // 如果pos不等于0，那么表示后边的标签都是没有闭合的，或者对应关系错误的，所以依次将错误的标签打印出来
+      // pos代表栈中与tagName相同的下标位置
+      // 需从上往下搜索，因为最后一个与tagName匹配的标签肯定是在栈顶，如果不在栈顶，即pos不等于0，就说明有标签没有闭合，只有非自闭合标签才能入栈
+      // 例如：<div><span></div>
       for (let i = stack.length - 1; i >= pos; i--) {
         if (process.env.NODE_ENV !== 'production' &&
           (i > pos || !tagName) &&

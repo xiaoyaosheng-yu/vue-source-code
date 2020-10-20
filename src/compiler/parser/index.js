@@ -319,6 +319,7 @@ export function parse (
     },
 
     chars (text: string, start: number, end: number) { // 当解析到带标签的文本类型时，会触发该钩子，创建文本类型的AST节点
+      // 以 text = "我叫{{name}}，我今年{{age}}岁了" 为例
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
           if (text === template) {
@@ -367,6 +368,7 @@ export function parse (
         }
         let res
         let child: ?ASTNode
+        // parseText 的作用就是将变量和非变量提取出来
         if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
           // 创建含有变量的AST节点时type属性为2
           /** 
