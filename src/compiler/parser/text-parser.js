@@ -32,10 +32,11 @@ export function parseText (
   text: string,
   delimiters?: [string, string]
 ): TextParseResult | void {
+  // 以 text = "我叫{{name}}，我今年{{age}}岁了" 为例
   // 用于检测文本中是否包含{{}}
   // eg：默认为{{}}，但也可以是别的，这个符号可以是通过传入参数的 delimiters 决定
   const tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE
-  if (!tagRE.test(text)) { // 如果文本中不包含变量，则直接返回
+  if (!tagRE.test(text)) { // 如果文本中不包含变量，则直接返回到上一层源码创建不含变量的文本AST节点
     return
   }
   const tokens = []
@@ -47,7 +48,7 @@ export function parseText (
     // match = ["{{name}}", "name", index: 6, input: "hello {{name}}，I am {{age}}", groups: undefined]
     // 如果text = "hello", 那么match = null，不会进入循环中
     index = match.index
-    // push text token
+    // 如果index大于lastIndex，则说明变量前有文本内容
     if (index > lastIndex) {
       // 先把'{{'前面的文本放入tokens中
       rawTokens.push(tokenValue = text.slice(lastIndex, index))

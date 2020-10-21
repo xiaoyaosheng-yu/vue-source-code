@@ -19,6 +19,18 @@ const genStaticKeysCached = cached(genStaticKeys)
  *    create fresh nodes for them on each re-render;
  * 2. Completely skip them in the patching process.
  */
+/*
+  <ul>
+    <li>我是文本信息</li>
+    <li>我是文本信息</li>
+    <li>我是文本信息</li>
+    <li>我是文本信息</li>
+    <li>我是文本信息</li>
+  </ul>
+
+  ul 叫做静态根节点
+  li 叫做静态节点
+*/
 /**
  * 在AST中找出所有静态节点并打上标记；
  * 在AST中找出所有静态根节点并打上标记；
@@ -126,10 +138,10 @@ function isStatic (node: ASTNode): boolean {
   // type = 1 则为元素节点
   // 元素节点是否为静态节点需要满足以下条件
   return !!(node.pre || (
-    !node.hasBindings && // no dynamic bindings 不能有v-、@、:开头的属性
-    !node.if && !node.for && // not v-if or v-for or v-else // 不能包含v-if,v-for,v-else
-    !isBuiltInTag(node.tag) && // not a built-in // 不能是slot或component，即不能是内置组件
-    isPlatformReservedTag(node.tag) && // not a component // 不能是组件
+    !node.hasBindings && // 不能有v-、@、:开头的属性
+    !node.if && !node.for && // 不能包含v-if,v-for,v-else
+    !isBuiltInTag(node.tag) && // 不能是slot或component，即不能是内置组件
+    isPlatformReservedTag(node.tag) && // 不能是自定义组件
     !isDirectChildOfTemplateFor(node) && // 父级不能是带有v-for的template标签
     Object.keys(node).every(isStaticKey) // 所有的key必须是静态节点才有的key，因为vue的key只能是type,tag,attrsList,attrsMap,plain,parent,children,attrs之一；
   ))

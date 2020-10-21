@@ -80,9 +80,9 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     } else {
       let data
       // 获取节点属性data
-      // 如果el.plain为真，则表示该节点没有属性
+      // 如果el.plain为true，则表示该节点没有属性
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
-        data = genData(el, state)
+        data = genData(el, state) // 获取节点的属性列表
       }
 
       // 判断该AST节点是否含有子节点列表
