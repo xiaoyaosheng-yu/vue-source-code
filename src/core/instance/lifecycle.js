@@ -36,16 +36,15 @@ export function initLifecycle (vm: Component) {
   let parent = options.parent
   // 判断是否存在父级实例，如果存在就循环建立父子关系，简单调用可忽视该段代码
   // 确保父级组件可以访问子组件，子组件可以访问父级组件
-  if (parent && !options.abstract) {
+  if (parent && !options.abstract) { // 父级实例存在且不是抽象组件
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
+    // 将自身实例添加进父级的children中，确保parent实例能够通过$children找到自身
     parent.$children.push(vm)
   }
 
-  /**
-   * 为组件实例挂载相应属性，并初始化
-   */
+  // 将父级实例添加到自身实例上，确保自身能够通过$parent找到父级组件
   vm.$parent = parent
   // 如果父组件存在，那么父组件的根实例就是子组件的根实例，最终#app实例就是根实例，否则根实例就是自己。
   vm.$root = parent ? parent.$root : vm
