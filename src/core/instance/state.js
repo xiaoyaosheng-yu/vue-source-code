@@ -45,18 +45,24 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
-// 初始化实例的状态选项
+/**
+ * 作用：初始化实例的状态选项
+ * props、methods、data、computed、watch 统称为状态选项
+ * 
+ * vm.$options中有什么选项就初始化什么选项
+ * 严格按照props，methods，data，computed，watch的顺序初始化，因为后者可能有对前者数据的调用
+ * @export
+ * @param {Component} vm
+ */
 export function initState (vm: Component) {
-  vm._watchers = []
-  // 初始化props、data、methods、computed、watch选项
-  // vm.$options中即有什么选项就初始化什么选项
+  vm._watchers = [] // 存储当前实例中所有的watcher实例
   const opts = vm.$options
-  // opts.props是规范化以后的数据，规范化在挂载options时就已经处理了
+  // opts.props是规范化以后的数据，规范化在合并options时就已经处理了
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
-  if (opts.data) {
+  if (opts.data) { // 如果存在data属性，则初始化
     initData(vm)
-  } else {
+  } else { // 如果没有则自动添加一个空的对象，并转化为响应式数据
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed)
@@ -65,22 +71,38 @@ export function initState (vm: Component) {
   }
 }
 
-// 初始化props状态选项
-// propsOptions 规范化以后的实例
+/**
+ * 初始化props状态选项
+ * 合并options时规范化后的 props 数据，文件地址：src/core/util/options.js 的 normalizeProps 函数
+ * normalizeProps 处理后的输出结果
+  {
+    props: {
+      name: {
+        type: String // [String, Number, null]
+      }
+    }
+  }
+
+ * @param {Component} vm
+ * @param {Object} propsOptions
+ */
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {} // 父组件传入的真实数据
-  const props = vm._props = {}
-  // cache prop keys so that future props updates can iterate using Array
-  // instead of dynamic object key enumeration.
-  const keys = vm.$options._propKeys = []
+  const props = vm._props = {} // 所有props的属性都会添加至vm._props中
+  // cache prop keys so that future props updates can iterate using Array instead of dynamic object key enumeration.
+  // 缓存props中的keys如果更新了props，则只需要遍历vm.$options._propKeys就能够得到所有的key
+  // 遗留问题：为什么要设置vm.$options._propKeys？
+  const keys = vm.$options._propKeys = [] 
   const isRoot = !vm.$parent
   // root instance props should be converted
-  if (!isRoot) { // 判断是否为根组件，如果不是，则不需要设置为响应式
+  // 如果不是根组件，则不需要设置为响应式
+  if (!isRoot) {
     toggleObserving(false)
   }
+  // 遍历规范化后的props
   for (const key in propsOptions) {
     keys.push(key)
-    // 检验props传入的数据类型
+    // 检验props传入的数据类型是否合法并且将返回传入的值
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     // 可忽略if中的代码
@@ -93,6 +115,7 @@ function initProps (vm: Component, propsOptions: Object) {
           vm
         )
       }
+      // 将键和值绑定到vm._props中
       defineReactive(props, key, value, () => {
         if (!isRoot && !isUpdatingChildComponent) {
           warn(
@@ -111,7 +134,7 @@ function initProps (vm: Component, propsOptions: Object) {
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
-    // 检验key是否在vm实例中，如果存在就设置代理，使this.demo = this._props.demo
+    // 检验key是否在vm实例中，如果不存在就设置代理，使this.demo = this._props.demo
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -274,7 +297,11 @@ function createGetterInvoker(fn) {
   }
 }
 
-// 初始化methonds
+/**
+ * 初始化methonds
+ * @param {Component} vm
+ * @param {Object} methods
+ */
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {

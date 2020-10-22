@@ -18,33 +18,48 @@ type PropOptions = {
   validator: ?Function
 };
 
-// 检验props的数据类型是否匹配
+/**
+ * 检验props的数据类型是否匹配，并返回 key 所对应的 value
+ * @export
+ * @param {string} key
+ * @param {Object} propOptions
+ * @param {Object} propsData
+ * @param {Component} [vm]
+ * @returns {*}
+ */
 export function validateProp (
   key: string, // 属性键名
   propOptions: Object, // 规范化后的props属性
   propsData: Object, // 父组件传入的props数据
   vm?: Component // 当前实例
 ): any {
+  // 获取到props中当前的value
+  /*
+    prop: {
+      name: {
+        type: String
+      }
+    }
+  */
   const prop = propOptions[key]
-  // 判断父组件是否传入了该值
+  // 父组件是否传入了该值的标识，父级组件不一定所有的props都传了
   const absent = !hasOwn(propsData, key)
+  // 查询key在父组件中对应的值
   let value = propsData[key]
-  // boolean casting
-  // 判断type属性是否为布尔值
+  // 判断当前的value是否为布尔值
   const booleanIndex = getTypeIndex(Boolean, prop.type)
+  // 如果是布尔类型，则进行边界处理
   if (booleanIndex > -1) {
-    if (absent && !hasOwn(prop, 'default')) { // 如果父组件没有传入值，且没有默认属性
+    if (absent && !hasOwn(prop, 'default')) { // 1、如果父级组件没有传入该值，且当前实例没有默认值，则value为false
       value = false
-    } else if (value === '' || value === hyphenate(key)) {
-      // only cast empty string / same name to boolean if
-      // boolean has higher priority
+    } else if (value === '' || value === hyphenate(key)) { // 2、如果属性值为空字符串或与key相同，驼峰法的key会转化为用 - 连接的字符串再比较
       const stringIndex = getTypeIndex(String, prop.type)
-      if (stringIndex < 0 || booleanIndex < stringIndex) {
+      if (stringIndex < 0 || booleanIndex < stringIndex) { // 如果prop的type属性中不存在String类型 或 boolean的优先级比字符串的优先级更高
         value = true
       }
     }
   }
-  // check default value
+  // 如果父级组件没有传入该值，则该值将会为undefined,此时获取该属性的默认值
   if (value === undefined) {
     // 获取默认值
     value = getPropDefaultValue(vm, prop, key)
@@ -60,16 +75,25 @@ export function validateProp (
     process.env.NODE_ENV !== 'production' &&
     // skip validation for weex recycle-list child component props
     !(__WEEX__ && isObject(value) && ('@binding' in value))
-  ) {
+  ) { // 如果父组件传入了该属性值，且有对应的值，则判断传入的值的类型与props的type是否相同
     assertProp(prop, key, value, vm, absent)
   }
   return value
 }
 
 /**
- * Get the default value of a prop.
+ * 根据当前实例中props的key获取其默认值
+ * prop: {
+    name: {
+      type: String
+    }
+  }
+ *
+ * @param {?Component} vm
+ * @param {PropOptions} prop
+ * @param {string} key
+ * @returns {*}
  */
-// 根据子组件中的key获取其默认值
 function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): any {
   // no default, return undefined
   if (!hasOwn(prop, 'default')) { // 如果没有默认值，则直接返回undefined
@@ -89,7 +113,7 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): a
   }
   // the raw prop value was also undefined from previous render,
   // return previous default value to avoid unnecessary watcher trigger
-  // 如果父级组件没有传入，但存在默认值，则直接返回默认值
+  // 如果父级组件没有传入，但vm._props存在默认值，则直接取其默认值
   if (vm && vm.$options.propsData &&
     vm.$options.propsData[key] === undefined &&
     vm._props[key] !== undefined
@@ -98,6 +122,8 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): a
   }
   // call factory function for non-Function types
   // a value is Function if its prototype is function even across different execution context
+  // 如果def是一个函数，则返回这个函数的值作为默认值
+  // 如果def不是函数，则将def作为默认值返回
   return typeof def === 'function' && getType(prop.type) !== 'Function'
     ? def.call(vm)
     : def
@@ -197,6 +223,13 @@ function isSameType (a, b) {
   return getType(a) === getType(b)
 }
 
+/**
+ * 判断属性是否存在某个类型
+ * 
+ * @param {*} type
+ * @param {*} expectedTypes
+ * @returns {number} 找到了则返回下标，如果不存在则返回-1
+ */
 function getTypeIndex (type, expectedTypes): number {
   if (!Array.isArray(expectedTypes)) {
     return isSameType(expectedTypes, type) ? 0 : -1

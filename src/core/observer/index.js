@@ -24,6 +24,7 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
  */
 export let shouldObserve: boolean = true
 
+// 用来控制标记是否将数据转换成响应式
 export function toggleObserving (value: boolean) {
   shouldObserve = value
 }

@@ -14,11 +14,11 @@ import {
 import {
   extend,
   hasOwn,
-  camelize,
+  camelize, // 驼峰法命名转换
   toRawType,
   capitalize,
   isBuiltInTag,
-  isPlainObject
+  isPlainObject // 判断是不是对象类型
 } from 'shared/util'
 
 /**
@@ -312,12 +312,9 @@ export function validateComponentName (name: string) {
   }
 }
 
-/**
- * Ensure all props option syntax are normalized into the
- * Object-based format.
- */
-// 将props数据转化为统一格式，因为props有三种写法，具体不做分析，分析原理可参照normalizeInject
 /** 
+ * 将props数据转化为统一格式，因为props有三种写法，具体不做分析，分析原理可参照normalizeInject
+ * 输入写法
   // 写法一
   props: ['name']
 
@@ -329,41 +326,67 @@ export function validateComponentName (name: string) {
   // 写法三
   props: {
       name:{
-      type: String
+        type: String
       }
   }
+
+ * 输出结果
+  {
+    props: {
+      name: {
+        type: String // [String, Number, null]
+      }
+    }
+  }
+
+ * @param {*} options
+ * @param {*} vm
 */
 function normalizeProps (options: Object, vm: ?Component) {
   const props = options.props
-  if (!props) return
-  const res = {}
+  if (!props) return // 用户未定义 props 则不需要统一化
+  const res = {} // 用于存储统一后的结果
   let i, val, name
+  // 第一种写法
   if (Array.isArray(props)) {
     i = props.length
+    // 循环遍历
+    /* 
+      输出的结果：
+      {
+        name: {
+          type: null
+        }
+      }
+    */
     while (i--) {
       val = props[i]
       if (typeof val === 'string') {
+        // 将key转化为驼峰法
         name = camelize(val)
         res[name] = { type: null }
-      } else if (process.env.NODE_ENV !== 'production') {
+      } else if (process.env.NODE_ENV !== 'production') { // 如果元素不是字符串，则抛出异常
         warn('props must be strings when using array syntax.')
       }
     }
-  } else if (isPlainObject(props)) {
+  } else if (isPlainObject(props)) { // 判断是不是对象类型
+    // 循环 props 的 keys
     for (const key in props) {
       val = props[key]
-      name = camelize(key)
-      res[name] = isPlainObject(val)
-        ? val
-        : { type: val }
+      name = camelize(key) // 驼峰命名处理
+      res[name] = isPlainObject(val) // 判断key的值是不是对象，从而判断是第几种写法
+        ? val // 如果是第三种写法，则输入格式为{name: {type: String}}
+        : { type: val } // 如果是第二种写法，则输出格式为{name: {type: String}}
     }
-  } else if (process.env.NODE_ENV !== 'production') {
+  } else if (process.env.NODE_ENV !== 'production') { // 如果既不是数组也不是对象，则抛出错误
     warn(
       `Invalid value for option "props": expected an Array or an Object, ` +
       `but got ${toRawType(props)}.`,
       vm
     )
   }
+
+  // 输出结果
   options.props = res
 }
 
