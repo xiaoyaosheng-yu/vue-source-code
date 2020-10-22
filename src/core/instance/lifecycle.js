@@ -342,13 +342,29 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
 }
 
+/**
+ * 触发钩子函数
+ * @param {*} vm 
+ * @param {*} hook 
+ */
 export function callHook (vm: Component, hook: string) {
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
+  // 从实例的$options中获取钩子名称所对应的钩子函数数组
   const handlers = vm.$options[hook]
   const info = `${hook} hook`
   if (handlers) {
+    // 注意handlers是一个数组，具体查看src/core/util/options.js中的mergeHook
+    // 循环执行钩子函数数组中的函数
     for (let i = 0, j = handlers.length; i < j; i++) {
+      /*
+        可以改写为
+        try {
+          handlers[i].call(vm)
+        } catch (e) {
+          handleError(e, vm, `${hook} hook`)
+        }
+      */
       invokeWithErrorHandling(handlers[i], vm, null, vm, info)
     }
   }
