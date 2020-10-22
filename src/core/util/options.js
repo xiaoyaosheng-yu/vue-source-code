@@ -75,6 +75,7 @@ function mergeData (to: Object, from: ?Object): Object {
 
 /**
  * Data
+ * data的合并策略
  */
 // 合并两个组件中data的属性，比如子组件中props和data合并
 export function mergeDataOrFn (
@@ -152,18 +153,22 @@ strats.data = function (
 
 /**
  * Hooks and props are merged as arrays.
+ * 生命周期钩子的合并策略
  */
 function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
-  const res = childVal
+  const res = childVal // child是否存在
     ? parentVal
-      ? parentVal.concat(childVal)
-      : Array.isArray(childVal)
-        ? childVal
-        : [childVal]
-    : parentVal
+      ? parentVal.concat(childVal) // child和parent都存在则直接合并字段
+      : Array.isArray(childVal) // 如果parent不存在，则判断child是不是一个数组，因为child还有可能是一个funciton
+        ? childVal // 如果是数组则直接返回数组
+        : [childVal] // 如果不是数组，则将child封装成数组返回
+    : parentVal // 如果child不存在，则直接返回parent或者空，因为parent有可能不传
+
+  // 问题：为什么要封装成数组，因为vue允许vue.mixin向实例混入自定义行为
+  // 设置成数组是为了在同一个钩子时能够同时触发用户自定义的钩子函数和vue自身自带的钩子函数
   return res
     ? dedupeHooks(res)
     : res
@@ -179,6 +184,11 @@ function dedupeHooks (hooks) {
   return res
 }
 
+/** 
+ * 循环挂载hooks至策略上
+ * LIFECYCLE_HOOKS位于src/shared/constants.js中
+ * 主要包含vue的各个生命周期名称
+*/
 LIFECYCLE_HOOKS.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -434,6 +444,8 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
 /**
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
+ * 将parent和child两个对象进行策略合并，策略模式
+ * 
  */
 export function mergeOptions (
   parent: Object, // Vue的构造函数
@@ -460,7 +472,7 @@ export function mergeOptions (
   // Only merged options has the _base property.
   if (!child._base) {
     // 递归合并参数
-    // 将mixins和extends合并到child上
+    // 将mixins和extends合并到parent上
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
     }
@@ -477,13 +489,19 @@ export function mergeOptions (
   for (key in parent) {
     mergeField(key)
   }
-  // 循环遍历在child中，但不在parent的属性
+  // 循环遍历在child中，但不在parent的属性，将其添加至options中
   for (key in child) { // 循环子级对象的key值，如果父级对象中没有对应key，则将该key和值存入父级对象中
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
+  /** 
+   * @method mergeField 将不存在parent中但存在child中的属性添加至options中
+   * 并不是简单的字段合并，而是遵循一定的合并策略，如果data有自己的策略，watch有自己的策略
+   * 相关策略在本文件中有注解
+  */
   function mergeField (key) {
+    // strats表示策略规则
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

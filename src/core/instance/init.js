@@ -41,7 +41,11 @@ export function initMixin (Vue: Class<Component>) { // 此时的Vue并没有实�
     } else {
       // 合并构造函数的options和new Vue(options)实例化传入的options，并挂载在options上
       vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor), // 传送的是原型的构造函数
+        // resolveConstructorOptions传送的参数是原型的构造函数,返回的是vm.constructor.options
+        // 位于src/core/global-api/index.js中
+        // 返回的具体属性是{component: {},directive: {},filter: {}}及内置组件的合集
+        // 内置组件有<keep-alive>、<transition> 和<transition-group>，这也是内置组件不需要注册的原因
+        resolveConstructorOptions(vm.constructor),
         options || {},
         vm
       )
