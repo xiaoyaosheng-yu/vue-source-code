@@ -65,8 +65,9 @@ export function initMixin (Vue: Class<Component>) { // 此时的Vue并没有实�
     initEvents(vm) // 初始化事件
     initRender(vm) // 初始化渲染，为组件实例初始化$attr和$createElement等属性
     callHook(vm, 'beforeCreate') // 触发beforeCreate生命周期函数
-    initInjections(vm) // 初始化injections // resolve injections before data/props
+    initInjections(vm) // 初始化injections，之所以放在data等初始化之前，是因为prop/data/computed/method/watch可能会引用inject的值
     // 初始化vm的状态，prop/data/computed/method/watch都在这里完成初始化，因此也是Vue实例create的关键
+    // 之所以initState需要在initInjections和initProvide中间，是因为prop/data/computed/method/watch可能会引用inject的值
     initState(vm)
     initProvide(vm) // 初始化provide， resolve provide after data/props
     callHook(vm, 'created') // 调用生命周期钩子函数

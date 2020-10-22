@@ -367,14 +367,17 @@ function normalizeProps (options: Object, vm: ?Component) {
   options.props = res
 }
 
-/**
- * Normalize all injections into Object-based format
- */
 // 将inject中的值转化为统一格式，因为inject有3种写法格式
 /** 
   // 写法一
   var Child = {
     inject: ['foo']
+  }
+  转化为：
+  inject: {
+    foo: {
+      from: 'foo'
+    }
   }
 
   // 写法二
@@ -383,11 +386,25 @@ function normalizeProps (options: Object, vm: ?Component) {
       foo: { default: 'xxx' }
     }
   }
+  转化为：
+  inject: {
+    foo: {
+      from: 'foo',
+      default: 'xxx'
+    }
+  }
 
   // 写法三
   const Child = {
     inject: {
       foo
+    }
+  }
+  转化为：
+  inject: {
+    foo: {
+      from: 'foo',
+      default: 'xxx'
     }
   }
 */
