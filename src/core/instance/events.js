@@ -9,17 +9,21 @@ import {
 } from '../util/index'
 import { updateListeners } from '../vdom/helpers/index'
 
+/**
+ * 父组件给子组件的注册事件中，把自定义事件传给子组件，在子组件实例化的时候进行初始化；而浏览器原生事件是在父组件中处理
+ * 换句话说：实例初始化阶段调用的初始化事件函数initEvents，实际上初始化的是"父组件在模板中使用v-on或@注册的(监听子组件内触发的)事件"。
+ * @param {*} vm 
+ */
 export function initEvents (vm: Component) {
-  /**
-   * 创建事件对象，用于存储事件
-   */
+  // 创建事件对象，用于存储事件
   vm._events = Object.create(null)
   vm._hasHookEvent = false
-  // init parent attached events
+
   // _parentListeners其实是父组件模板中写的v-on
-  // 所以下面这段就是将父组件模板中注册的事件放到当前组件实例的listeners里面，即父组件的事件触发子组件的事件传入的函数
+  // 将父组件向子组件注册的事件注册到子组件的实例中
   const listeners = vm.$options._parentListeners
   if (listeners) {
+    // 对比新旧listeners，并对旧listeners进行注册或卸载操作
     updateComponentListeners(vm, listeners)
   }
 }

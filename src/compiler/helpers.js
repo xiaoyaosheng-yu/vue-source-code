@@ -129,7 +129,9 @@ export function addHandler (
   }
 
   let events
-  if (modifiers.native) { // 判断事件是一个浏览器原生事件还是自定义事件
+  // 对事件进行归类，方便在vnode中标记
+  // 判断事件是一个浏览器原生事件还是自定义事件
+  if (modifiers.native) { 
     delete modifiers.native
     events = el.nativeEvents || (el.nativeEvents = {})
   } else { // 如果是自定义事件

@@ -791,13 +791,15 @@ function processAttrs (el) {
   // 获取属性列表
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic
+
+  // 循环属性列表
   for (i = 0, l = list.length; i < l; i++) {
     name = rawName = list[i].name
     value = list[i].value
-    if (dirRE.test(name)) {
+    if (dirRE.test(name)) { // 如果是指令属性，如@click.native
       // mark element as dynamic
       el.hasBindings = true
-      // modifiers
+      // 解析修饰符
       modifiers = parseModifiers(name.replace(dirRE, ''))
       // support .foo shorthand syntax for the .prop modifier
       if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
@@ -832,7 +834,7 @@ function processAttrs (el) {
           }
           if (modifiers.sync) {
             syncGen = genAssignmentCode(value, `$event`)
-            if (!isDynamic) {
+            if (!isDynamic) { 
               addHandler(
                 el,
                 `update:${camelize(name)}`,
@@ -875,7 +877,7 @@ function processAttrs (el) {
         } else {
           addAttr(el, name, value, list[i], isDynamic)
         }
-      } else if (onRE.test(name)) { // v-on
+      } else if (onRE.test(name)) { // 如果是事件指令
         name = name.replace(onRE, '')
         isDynamic = dynamicArgRE.test(name)
         if (isDynamic) {
