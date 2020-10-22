@@ -131,48 +131,69 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): a
 
 /**
  * Assert whether a prop is valid.
+ * 校验父组件传来的真实值是否与prop的type类型相匹配
+ * 如果不匹配则在非生产环境下抛出警告。
+ * 
+ * @param {PropOptions} prop
+ * @param {string} name
+ * @param {*} value
+ * @param {?Component} vm
+ * @param {boolean} absent
  */
 function assertProp (
-  prop: PropOptions,
-  name: string,
-  value: any,
-  vm: ?Component,
-  absent: boolean
+  prop: PropOptions, // 子组件prop的选项
+  name: string, // key名称
+  value: any, // 父组件的propsData传进来的真实数据
+  vm: ?Component, // 当前实例
+  absent: boolean // 父组件是否传了这个值
 ) {
-  if (prop.required && absent) {
+  if (prop.required && absent) { // 如果该选项设置了必填，但是父组件没有传，则抛出异常
     warn(
       'Missing required prop: "' + name + '"',
       vm
     )
     return
   }
-  if (value == null && !prop.required) {
+  if (value == null && !prop.required) { // 如果是非必填，但是值不存在，则直接返回
     return
   }
-  let type = prop.type
-  let valid = !type || type === true
-  const expectedTypes = []
+
+  let type = prop.type // 获取值的类型
+  let valid = !type || type === true // 输出结果，即校验是否成功，默认成功，如果是这种写法，则标识不需要校验：props:{name:true}，这时的type就等于true
+  const expectedTypes = [] // 抛错的结果数组
   if (type) {
+    // 如果设置了type属性，则统一转化为数组类型
     if (!Array.isArray(type)) {
+      // 如果不是Array，则转化为Array
       type = [type]
     }
+    /// 遍历type数组，因为type值的数组可以是多选的，!valid表示只要有一个成功则立即结束循环
     for (let i = 0; i < type.length && !valid; i++) {
-      const assertedType = assertType(value, type[i])
+      /* 
+      assertedType 返回的结果
+      {
+        vaild: true,       // 表示是否校验成功
+        expectedType：'Boolean'   // 表示被校验的类型
+      }
+      */
+      const assertedType = assertType(value, type[i]) // 进行校验
       expectedTypes.push(assertedType.expectedType || '')
       valid = assertedType.valid
     }
   }
 
-  if (!valid) {
+  if (!valid) { // 未通过则抛出异常
     warn(
       getInvalidTypeMessage(name, value, expectedTypes),
       vm
     )
     return
   }
-  const validator = prop.validator
+
+  // 自定义校验函数
+  const validator = prop.validator // 获取自定义校验函数
   if (validator) {
-    if (!validator(value)) {
+    if (!validator(value)) { // 校验失败则抛出异常
       warn(
         'Invalid prop: custom validator check failed for prop "' + name + '".',
         vm
