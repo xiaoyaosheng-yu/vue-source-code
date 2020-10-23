@@ -14,7 +14,13 @@ const idToTemplate = cached(id => {
   return el && el.innerHTML
 })
 
-const mount = Vue.prototype.$mount
+// $mount 先定义运行时版本的$mount方法，再定义完整版本的$mount方法
+// 两个版本都需要通过$mount进行模板挂载，所以，完整版在模板编译完成后生成render函数，然后直接调用运行时版本的$mount进入挂载阶段即可
+// 运行时版本不需要进入模板编译阶段，因为运行时版本就已经是render函数的写法了
+
+const mount = Vue.prototype.$mount // 缓存运行时版本的$mount
+
+// 定义完整版的$mount
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
@@ -32,11 +38,12 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
+  // 判断用户是否有手写render，如果没有就获取默认的template模板
   if (!options.render) {
     let template = options.template
-    if (template) {
+    if (template) { // 如果模板存在
       if (typeof template === 'string') {
-        if (template.charAt(0) === '#') {
+        if (template.charAt(0) === '#') { // 判断挂载点是不是一个ID，如果是，则将该DOM元素的innerHTML作为模板
           template = idToTemplate(template)
           /* istanbul ignore if */
           if (process.env.NODE_ENV !== 'production' && !template) {
@@ -46,16 +53,16 @@ Vue.prototype.$mount = function (
             )
           }
         }
-      } else if (template.nodeType) {
+      } else if (template.nodeType) { // 判断是否是一个DOM元素，如果是，则将该DOM元素的innerHTML作为模板
         template = template.innerHTML
-      } else {
+      } else { // 如果既不是ID也不是DOM元素，则抛出异常
         if (process.env.NODE_ENV !== 'production') {
           warn('invalid template option:' + template, this)
         }
         return this
       }
     } else if (el) {
-      // 将节点转化为字符串模板
+      // 如果模板不存在，则根据el获取外部模板
       template = getOuterHTML(el)
     }
     if (template) {
@@ -82,6 +89,8 @@ Vue.prototype.$mount = function (
       }
     }
   }
+
+  // 调用运行时版本的$mount进入挂载阶段
   return mount.call(this, el, hydrating)
 }
 
