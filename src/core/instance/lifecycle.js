@@ -99,22 +99,33 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
   }
 
+  // 销毁阶段
   Vue.prototype.$destroy = function () {
     const vm: Component = this
-    if (vm._isBeingDestroyed) {
+    if (vm._isBeingDestroyed) { // 判断当前实例是否处于正在被销毁阶段，如果时，则防止反复操作
       return
     }
+
+    // 开始销毁
     callHook(vm, 'beforeDestroy')
+
     vm._isBeingDestroyed = true
     // remove self from parent
+
     const parent = vm.$parent
+    // 将当前实例从父级实例中删除
+    // 条件 1、存在父级实例，2、父级实例没有被销毁，3、不是抽象组件
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
+
+    // 如果其他数据依赖了自身实例，则从其他列表中删除自身实例
     // teardown watchers
     if (vm._watcher) {
       vm._watcher.teardown()
     }
+
+    // 如果自身实例依赖了其他数据，则清空数据
     let i = vm._watchers.length
     while (i--) {
       vm._watchers[i].teardown()
@@ -124,13 +135,20 @@ export function lifecycleMixin (Vue: Class<Component>) {
     if (vm._data.__ob__) {
       vm._data.__ob__.vmCount--
     }
+
+    // 标记自身实例已经被销毁
     // call the last hook...
     vm._isDestroyed = true
+
     // invoke destroy hooks on current rendered tree
+    // 将自身实例从vnode树中删除
     vm.__patch__(vm._vnode, null)
+
     // fire destroyed hook
     callHook(vm, 'destroyed')
+    
     // turn off all instance listeners.
+    // 移除所有事件监听器
     vm.$off()
     // remove __vue__ reference
     if (vm.$el) {
