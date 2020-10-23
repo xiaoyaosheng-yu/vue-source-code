@@ -378,7 +378,12 @@ function initMethods (vm: Component, methods: Object) {
   }
 }
 
-// 初始化watch
+/**
+ * 初始化watch
+ *
+ * @param {Component} vm
+ * @param {Object} watch
+ */
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
