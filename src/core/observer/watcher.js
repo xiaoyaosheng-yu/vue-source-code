@@ -119,6 +119,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 如果this.$watch中有deep选项，则递归读取数据的每一个属性，并对其进行监听
       if (this.deep) {
         traverse(value)
       }
