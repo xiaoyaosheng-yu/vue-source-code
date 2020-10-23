@@ -67,7 +67,7 @@ export default class Watcher {
     this.cb = cb
     this.id = ++uid // uid for batching
     this.active = true
-    this.dirty = this.lazy // for lazy watchers
+    this.dirty = this.lazy // 用于标识计算属性的返回值是否有变化
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -210,7 +210,7 @@ export default class Watcher {
    */
   evaluate () {
     this.value = this.get()
-    this.dirty = false
+    this.dirty = false // 记录本次数据，设置为缓存
   }
 
   /**

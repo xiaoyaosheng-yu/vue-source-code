@@ -142,13 +142,24 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
-// 初始化data
+/**
+ * 作用：初始化data
+ * 思路：
+ *   1、将data统一格式，最终值必须是一个对象
+ *   2、判断data最终值是不是一个对象，如果不是则跑错、抛出错误
+ *   3、判断data是否和methods或props中的某个属性重复，如果重复，则抛出错误
+ *   4、如果以上条件都通过，则将其挂载至vm._data上，并设置好代理
+ *   5、将data做响应式监听
+ * @param {Component} vm
+ */
 function initData (vm: Component) {
+  // 获取到用户传入的data选项
   let data = vm.$options.data
   // 如果data是一个函数，则通过getData获取其返回值，并将其挂载至_data上，如果不是函数，则直接将其挂载至_data
   data = vm._data = typeof data === 'function'
-    ? getData(data, vm)
+    ? getData(data, vm) // 查找并返回一个对象，保证data最终值必须是一个对象
     : data || {}
+
   if (!isPlainObject(data)) { // 判断data的最终值是不是一个对象，如果不是，则抛出异常
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -162,6 +173,8 @@ function initData (vm: Component) {
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
+
+  // 判断data命名是否合法
   while (i--) { // 循环data中的键名，判断是否和methods和props中的键名重复
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') { // 判断是否和methods中的方法名称重复
@@ -201,19 +214,26 @@ export function getData (data: Function, vm: Component): any {
   }
 }
 
-const computedWatcherOptions = { lazy: true }
+const computedWatcherOptions = { lazy: true } // 默认该计算属性没有获取过，即watcher的value为空，当修改(即执行watcher.evaluate()的方法)时，该值才会改变
 
-// 初始化计算属性computed
+/**
+ * 作用：初始化计算属性computed
+ *
+ * @param {Component} vm
+ * @param {Object} computed
+ */
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
+  // 为vm实例添加_computedWatchers属性
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
 
+  // 循环遍历用户传入的computed属性
   for (const key in computed) {
-    const userDef = computed[key]
-    const getter = typeof userDef === 'function' ? userDef : userDef.get
-    if (process.env.NODE_ENV !== 'production' && getter == null) {
+    const userDef = computed[key] // 获取当前选项的值
+    const getter = typeof userDef === 'function' ? userDef : userDef.get // 如果不是一个方法，则默认为取值器getter
+    if (process.env.NODE_ENV !== 'production' && getter == null) { // 如果getter的两种情况都拿不到值，则抛出错误
       warn(
         `Getter is missing for computed property "${key}".`,
         vm
@@ -233,7 +253,7 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
-    if (!(key in vm)) { // 判断是否重复定义，如果没有就挂载至当前实例上
+    if (!(key in vm)) { // 判断是否重复定义，如果没有就调用defineComputed方法为实例vm上设置计算属性。
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
       if (key in vm.$data) {
@@ -245,18 +265,28 @@ function initComputed (vm: Component, computed: Object) {
   }
 }
 
+/**
+ * 为target上定义一个属性key，并且属性key的getter和setter根据userDef的值来设置
+ * sharedPropertyDefinition是默认的属性描述符
+ * 
+ * @export
+ * @param {*} target 实例
+ * @param {string} key 计算属性的键名
+ * @param {(Object | Function)} userDef 计算属性的值
+ */
 export function defineComputed (
   target: any,
   key: string,
   userDef: Object | Function
 ) {
-  const shouldCache = !isServerRendering()
-  if (typeof userDef === 'function') {
+  const shouldCache = !isServerRendering() // 标记是否缓存数据，必须是非ssr环境下才能缓存数据
+  // 针对userDef的两种情况进行区分，并设置其getter和setter
+  if (typeof userDef === 'function') { // 如果userDef是一个函数
     sharedPropertyDefinition.get = shouldCache
       ? createComputedGetter(key)
       : createGetterInvoker(userDef)
     sharedPropertyDefinition.set = noop
-  } else {
+  } else { // 如果不是一个函数
     sharedPropertyDefinition.get = userDef.get
       ? shouldCache && userDef.cache !== false
         ? createComputedGetter(key)
@@ -264,6 +294,8 @@ export function defineComputed (
       : noop
     sharedPropertyDefinition.set = userDef.set || noop
   }
+
+  // 为防止用户修改计算属性
   if (process.env.NODE_ENV !== 'production' &&
       sharedPropertyDefinition.set === noop) {
     sharedPropertyDefinition.set = function () {
@@ -273,13 +305,17 @@ export function defineComputed (
       )
     }
   }
+
+  // 为该计算属性设置响应式监听
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// 将computedGetter作为sharedPropertyDefinition的getter，即获取计算属性其实最终就是执行了computedGetter方法
 function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
+      // 判断一下是不是依赖的数据引起的变化，如果是，则重新计算，否则不计算
       if (watcher.dirty) {
         watcher.evaluate()
       }
@@ -298,27 +334,38 @@ function createGetterInvoker(fn) {
 }
 
 /**
- * 初始化methonds
+ * 作用：初始化methonds
+ * 思路：
+ *  1、判断method是否存在
+ *  2、判断method的命名符是否符合命名规范
+ *  3、如果以上两点都通过，则挂载至vm上
+ * 
  * @param {Component} vm
  * @param {Object} methods
  */
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
+  // 循环遍历 methods 选项中的每一个对象
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
-      if (typeof methods[key] !== 'function') { // 判断methods是不是一个方法
+      // 如果methods的选项不是一个方法，则抛出异常
+      if (typeof methods[key] !== 'function') {
         warn(
           `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
           `Did you reference the function correctly?`,
           vm
         )
       }
-      if (props && hasOwn(props, key)) { // 判断methods名称在props中是否已经重复定义
+
+      // 如果methods的选项和props中某个属性名冲突了，则抛出异常
+      if (props && hasOwn(props, key)) { 
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
+      
+      // 如果该选项名在实例中存在属性名或方法名且选项名是以 _ 或 $ 开头的，则抛出异常
       if ((key in vm) && isReserved(key)) { // 判断methods的名称是否合法，即是否和内置方法重复了，防止重写内部方法
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -326,7 +373,7 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
-    // 将方法挂载到vm实例上
+    // 如果以上条件都通过，则将其挂载至vm实例上
     vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
   }
 }
