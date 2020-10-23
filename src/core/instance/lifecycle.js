@@ -143,6 +143,15 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 }
 
+/**
+ * 作用：将模板渲染至视图中并开启对模板中的数据监听
+ *
+ * @export
+ * @param {Component} vm
+ * @param {?Element} el
+ * @param {boolean} [hydrating]
+ * @returns {Component}
+ */
 export function mountComponent (
   vm: Component,
   el: ?Element,
@@ -202,13 +211,21 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
-  new Watcher(vm, updateComponent, noop, {
-    before () {
-      if (vm._isMounted && !vm._isDestroyed) {
-        callHook(vm, 'beforeUpdate')
+  // 开启数据监听
+  new Watcher(
+    vm, 
+    updateComponent, 
+    noop, 
+    {
+      before () {
+        if (vm._isMounted && !vm._isDestroyed) {
+          callHook(vm, 'beforeUpdate')
+        }
       }
-    }
-  }, true /* isRenderWatcher */)
+    },
+    true /* isRenderWatcher */
+  )
+
   hydrating = false
 
   // manually mounted instance, call mounted on self

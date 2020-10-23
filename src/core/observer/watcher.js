@@ -22,6 +22,10 @@ let uid = 0
  * A watcher parses an expression, collects dependencies,
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
+ * 
+ * 一旦获取了数据或者函数，就会触发getter，从而将watcher加入到该数据的依赖列表中
+ * 当数据发生变化时，会通知依赖列表中的所有watcher依赖
+ * 依赖获取到通知则调用回调函数进行视图更新
  */
 export default class Watcher {
   vm: Component;
@@ -42,9 +46,10 @@ export default class Watcher {
   getter: Function;
   value: any;
 
+
   constructor (
     vm: Component,
-    expOrFn: string | Function,
+    expOrFn: string | Function, // 可以是函数路径，如"a.b.c"，也可以是函数
     cb: Function,
     options?: ?Object,
     isRenderWatcher?: boolean
@@ -99,7 +104,7 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
-    pushTarget(this)
+    pushTarget(this) // 将自身属性当作依赖加入到数据依赖队列中，等待被收集
     let value
     const vm = this.vm
     try {
